@@ -9,130 +9,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 
 # Load the trained pipeline
-pipeline = joblib.load('model/model_lr.joblib')
-
-def main():
-    st.title("Sentiment Analysis NLP App")
-    st.subheader("Streamlit Projects")
-
-    # Add sidebar with 3 menu options
-    menu = ["Home", "Dataset & Analysis", "KMeans Clustering", "About"]
-    choice = st.sidebar.selectbox("Menu", menu)
-
-    if choice == "Home":
-        st.subheader("Home")
-        with st.form("nlpForm"):
-            raw_text = st.text_area("Enter Text Here")
-            submit_button = st.form_submit_button(label='Analyze')
-
-        # Layout
-        col1, col2 = st.columns(2)
-        if submit_button:
-            with col1:
-                st.info("Results")
-                # Predict sentiment of the entire text using the pipeline
-                sentiment = pipeline.predict([raw_text])[0]
-                st.write(f"Predicted Sentiment: {sentiment}")
-
-                # Emoji based on prediction
-                if sentiment == "positive":
-                    st.markdown("# Positive 😃")
-                elif sentiment == "negative":
-                    st.markdown("# Negative 😡")
-                else:
-                    st.markdown("# Neutral 😐")
-
-            with col2:
-                st.info("Token Sentiment")
-                # Analyze sentiment for individual tokens
-                token_sentiments = analyze_token_sentiment(raw_text, pipeline)
-                st.write(token_sentiments)
-
-    elif choice == "Dataset & Analysis":
-        st.subheader("Dataset & Sentiment Analysis")
-
-        # Load dataset
-        dataset_path = 'data/komeng_predicted.csv'
-        data = pd.read_csv(dataset_path)
-
-        # Display dataset
-        st.write("### Dataset")
-        st.dataframe(data)
-
-        # Count sentiment distribution
-        sentiment_counts = data['sentiment'].value_counts()
-        st.write("### Distribusi Sentimen")
-        st.bar_chart(sentiment_counts)
-
-        # Display number of positive, negative, and neutral sentiments
-        st.write("#### Jumlah Sentiment")
-        st.write(sentiment_counts)
-
-        # Generate Word Cloud
-        st.write("### Word Cloud")
-        generate_wordcloud(data)
-
-        # Plot top frequent words
-        st.write("### Most Frequent Words")
-        plot_top_words(data)
-
-    elif choice == "KMeans Clustering":
-        st.subheader("KMeans Clustering Analysis")
-
-        # Load dataset
-        dataset_path = 'data/komeng_predicted.csv'
-        data = pd.read_csv(dataset_path)
-
-        # Convert text data to list
-        text_data = data['full_text'].to_list()
-
-        # Vectorization
-        vectorizer = TfidfVectorizer()
-        X = vectorizer.fit_transform(text_data)
-
-        # KMeans clustering
-        true_k = 8
-        model = KMeans(n_clusters=true_k, init='k-means++', max_iter=100, n_init=1)
-        model.fit(X)
-
-        # Display clusters
-        order_centroids = model.cluster_centers_.argsort()[:, ::-1]
-        terms = vectorizer.get_feature_names_out()
-        cluster_info = ""
-        for i in range(true_k):
-            cluster_info += f"Cluster {i}: " + ', '.join([terms[ind] for ind in order_centroids[i, :10]]) + "\n"
-        st.write("### Cluster Terms")
-        st.text(cluster_info)
-
-        # Silhouette Score
-        from sklearn.metrics import silhouette_score
-        score = silhouette_score(X, model.labels_)
-        st.write(f"### Silhouette Score: {score:.2f}")
-
-        # PCA for 2D visualization
-        pca = PCA(n_components=2, random_state=0)
-        reduced_features = pca.fit_transform(X.toarray())
-        reduced_cluster_centers = pca.transform(model.cluster_centers_)
-
-        # Plotting the clusters
-        plt.figure(figsize=(10, 6))
-        scatter = plt.scatter(reduced_features[:, 0], reduced_features[:, 1], c=model.labels_, cmap='viridis', alpha=0.6)
-        plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:, 1], marker='x', s=150, c='red', label='Centroids')
-        plt.title('KMeans Clustering Visualization')
-        plt.xlabel('PCA Component 1')
-        plt.ylabel('PCA Component 2')
-        plt.colorbar(scatter)
-        plt.legend()
-        st.pyplot(plt)
-
-    else:
-        st.subheader("About")
-        st.write("This is a simple sentiment analysis app built using Streamlit.")
+pipeline = joblib.load(r'model\model_lr.joblib')
 
 # Word Cloud function
 def generate_wordcloud(data):
     # Combine the full_text column into one large string
-    data_text = ' '.join(data['full_text'].astype(str).tolist())
+    data_text = ' '.join(data['full_text'].dropna().astype(str).tolist())
 
     # Generate word cloud
     wc = WordCloud(background_color='black', max_words=500, width=800, height=400).generate(data_text)
@@ -145,7 +27,7 @@ def generate_wordcloud(data):
 
 # Function to plot top frequent words
 def plot_top_words(data):
-    text = ' '.join(data['full_text'].astype(str).tolist())
+    text = ' '.join(data['full_text'].dropna().astype(str).tolist())
     words = text.split()
     word_counts = Counter(words)
     top_words = word_counts.most_common(12)
@@ -193,6 +75,124 @@ def analyze_token_sentiment(docx, pipeline):
         'neutral': neu_list,
     }
     return result
+
+def main():
+    st.title("Sentiment Analysis NLP App")
+    st.subheader("Streamlit Projects")
+
+    # Add sidebar with 3 menu options
+    menu = ["Home", "Dataset & Analysis", "KMeans Clustering", "About"]
+    choice = st.sidebar.selectbox("Menu", menu)
+
+    if choice == "Home":
+        st.subheader("Home")
+        with st.form("nlpForm"):
+            raw_text = st.text_area("Enter Text Here")
+            submit_button = st.form_submit_button(label='Analyze')
+
+        # Layout
+        col1, col2 = st.columns(2)
+        if submit_button:
+            with col1:
+                st.info("Results")
+                # Predict sentiment of the entire text using the pipeline
+                sentiment = pipeline.predict([raw_text])[0]
+                st.write(f"Predicted Sentiment: {sentiment}")
+
+                # Emoji based on prediction
+                if sentiment == "positive":
+                    st.markdown("# Positive 😃")
+                elif sentiment == "negative":
+                    st.markdown("# Negative 😡")
+                else:
+                    st.markdown("# Neutral 😐")
+
+            with col2:
+                st.info("Token Sentiment")
+                # Analyze sentiment for individual tokens
+                token_sentiments = analyze_token_sentiment(raw_text, pipeline)
+                st.write(token_sentiments)
+
+    elif choice == "Dataset & Analysis":
+        st.subheader("Dataset & Sentiment Analysis")
+
+        # Load dataset
+        dataset_path = r'data\jokowi_predicted.csv'
+        data = pd.read_csv(dataset_path)
+
+        # Display dataset
+        st.write("### Dataset")
+        st.dataframe(data)
+
+        # Count sentiment distribution
+        sentiment_counts = data['sentiment'].value_counts()
+        st.write("### Distribusi Sentimen")
+        st.bar_chart(sentiment_counts)
+
+        # Display number of positive, negative, and neutral sentiments
+        st.write("#### Jumlah Sentiment")
+        st.write(sentiment_counts)
+
+        # Generate Word Cloud
+        st.write("### Word Cloud")
+        generate_wordcloud(data)
+
+        # Plot top frequent words
+        st.write("### Most Frequent Words")
+        plot_top_words(data)
+
+    elif choice == "KMeans Clustering":
+        st.subheader("KMeans Clustering Analysis")
+
+        # Load dataset
+        dataset_path = r'data\jokowi_predicted.csv'
+        data = pd.read_csv(dataset_path)
+
+        # Convert text data to list
+        text_data = data['full_text'].dropna().to_list()
+
+        # Vectorization
+        vectorizer = TfidfVectorizer()
+        X = vectorizer.fit_transform(text_data)
+
+        # KMeans clustering
+        true_k = 8
+        model = KMeans(n_clusters=true_k, init='k-means++', max_iter=100, n_init=1)
+        model.fit(X)
+
+        # Display clusters
+        order_centroids = model.cluster_centers_.argsort()[:, ::-1]
+        terms = vectorizer.get_feature_names_out()
+        cluster_info = ""
+        for i in range(true_k):
+            cluster_info += f"Cluster {i}: " + ', '.join([terms[ind] for ind in order_centroids[i, :10]]) + "\n"
+        st.write("### Cluster Terms")
+        st.text(cluster_info)
+
+        # Silhouette Score
+        from sklearn.metrics import silhouette_score
+        score = silhouette_score(X, model.labels_)
+        st.write(f"### Silhouette Score: {score:.5f}")
+
+        # PCA for 2D visualization
+        pca = PCA(n_components=2, random_state=0)
+        reduced_features = pca.fit_transform(X.toarray())
+        reduced_cluster_centers = pca.transform(model.cluster_centers_)
+
+        # Plotting the clusters
+        plt.figure(figsize=(10, 6))
+        scatter = plt.scatter(reduced_features[:, 0], reduced_features[:, 1], c=model.labels_, cmap='viridis', alpha=0.6)
+        plt.scatter(reduced_cluster_centers[:, 0], reduced_cluster_centers[:, 1], marker='x', s=150, c='red', label='Centroids')
+        plt.title('KMeans Clustering Visualization')
+        plt.xlabel('PCA Component 1')
+        plt.ylabel('PCA Component 2')
+        plt.colorbar(scatter)
+        plt.legend()
+        st.pyplot(plt)
+
+    else:
+        st.subheader("About")
+        st.write("This is a simple sentiment analysis app built using Streamlit.")
 
 if __name__ == '__main__':
     main()
